@@ -59,7 +59,8 @@ EvaluatorImpl::EvaluatorImpl(std::unique_ptr<AbstractTemplate>&& tpl, const Mapp
     , extendBuffer_(mr.Length() + 1, EXTEND_BUFFER_COLUMNS)
 {
     recursor_.FillAlphaBeta(alpha_, beta_);
-    if (!std::isfinite(LL())) throw AlphaBetaMismatch();
+    const double ll = LL();
+    if (!std::isfinite(ll)) throw AlphaBetaMismatch(ll);
 }
 
 double EvaluatorImpl::LL(const Mutation& mut_)

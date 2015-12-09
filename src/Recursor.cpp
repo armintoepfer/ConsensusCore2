@@ -673,8 +673,9 @@ size_t Recursor::FillAlphaBeta(M& a, M& b) const throw(AlphaBetaMismatch)
         ++flipflops;
     }
 
-    if (std::abs(1.0 - alphaV / betaV) > ALPHA_BETA_MISMATCH_TOLERANCE)
-        throw AlphaBetaMismatch();
+    const double alphaBetaMismatch = std::abs(1.0 - alphaV / betaV);
+    if (alphaBetaMismatch > ALPHA_BETA_MISMATCH_TOLERANCE)
+        throw AlphaBetaMismatch(alphaBetaMismatch);
 
     return flipflops;
 }

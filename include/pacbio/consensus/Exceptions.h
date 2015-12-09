@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -10,7 +12,13 @@ namespace Consensus {
 class AlphaBetaMismatch : public std::runtime_error
 {
 public:
-    AlphaBetaMismatch() : std::runtime_error("alpha/beta mismatch error!") {}
+    AlphaBetaMismatch(float v) : std::runtime_error(message(v)) {}
+private:
+    static std::string message(float v) {
+        std::ostringstream ss;
+        ss << "Alpha/Beta Mismatch (" << std::setprecision(5) << v << ')';
+        return ss.str();
+    }
 };
 
 class ChemistryNotFound : public std::runtime_error
