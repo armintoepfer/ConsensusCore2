@@ -153,9 +153,11 @@ double SP1C1BetaNoCovModel::CovEmissionPr(MoveType move, uint8_t nuc, char from,
 {
     auto ito = detail::TranslationTable[static_cast<uint8_t>(to)];
     auto ifrom = detail::TranslationTable[static_cast<uint8_t>(from)];
+    ifrom = ifrom > 3 ? 0 : ifrom;
+    ito = ito > 3 ? 0 : ito;
     const auto row = (ifrom << 2) | ito;
     
-    if (ito > 3 || nuc > 3 || ifrom > 3) throw std::invalid_argument("invalid character in sequence");
+    if (ito > 3 || nuc > 12 || ifrom > 3) throw std::invalid_argument("invalid character in sequence");
 
     if (move == MoveType::BRANCH)
         return branchPmf[row][nuc];
