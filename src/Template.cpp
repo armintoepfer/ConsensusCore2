@@ -133,6 +133,8 @@ size_t AbstractTemplate::TrueLength() const { return end_ - start_; }
 */
 std::pair<double, double> AbstractTemplate::SiteNormalParameters(const size_t i) const
 {
+    
+    return std::make_pair(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN());
     // TODO (ndelaney): This probably needs to be matched to the specific model being used.
     // std::log(1.0/3);
     constexpr double lgThird = -1.0986122886681098;

@@ -188,34 +188,44 @@ namespace {
             { -3.7635265726798, 0.966948054199674, -0.278953499558314, 0.0217760765687873  },
             { -2.10705727831087, 0.31973388808551, -0.135465925089379, 0.0125410623312247  } 
         }};
+    
+        double ctx_trans[16][4];
+    
+    
+    
+    
+    
 }
 
-SP1C1BetaNoCovModel::SP1C1BetaNoCovModel(const SNR& snr) : snr_(snr) {}
-std::vector<TemplatePosition> SP1C1BetaNoCovModel::Populate(const std::string& tpl) const
-{
-    std::vector<TemplatePosition> result;
-
-    if (tpl.empty()) return result;
-    
-    
-    // Calculate probabilities in all 16 Contexts
-    const double snr = snr_[0], snr2 = snr * snr, snr3 = snr2 * snr;
-    double ctx_trans[16][4];
+SP1C1BetaNoCovModel::SP1C1BetaNoCovModel(const SNR& snr) : snr_(snr) {
+    const double snrc = snr_[0], snr2 = snrc * snrc, snr3 = snr2 * snrc;
     for(int ctx =0; ctx < 16; ctx++) {
         double sum = 1.0;
         ctx_trans[ctx][0] = 1.0;
         for (size_t j = 0; j < 3; ++j) {
             double xb =
-                transProbs[ctx][j][0] + snr * transProbs[ctx][j][1] + snr2 * transProbs[ctx][j][2] + snr3 * transProbs[ctx][j][3];
+            transProbs[ctx][j][0] + snrc * transProbs[ctx][j][1] + snr2 * transProbs[ctx][j][2] + snr3 * transProbs[ctx][j][3];
             xb = std::exp(xb);
             ctx_trans[ctx][j+1] = xb;
             sum += xb;
         }
         
-        for (size_t j = 0; j < 3; ++j)
-            ctx_trans[ctx][j+1] /= sum;
+        for (size_t j = 0; j < 4; ++j)
+            ctx_trans[ctx][j] /= sum;
     }
+
+
+}
+std::vector<TemplatePosition> SP1C1BetaNoCovModel::Populate(const std::string& tpl) const
+{
+    std::vector<TemplatePosition> result;
     
+    if (tpl.empty()) return result;
+    result.reserve(tpl.size());
+
+    
+    
+    // Calculate probabilities in all 16 Contexts
     
     uint8_t prev = detail::TranslationTable[static_cast<uint8_t>(tpl[0])];
     for (size_t i = 1; i < tpl.size(); ++i) {
