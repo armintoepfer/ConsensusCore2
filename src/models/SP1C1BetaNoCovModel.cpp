@@ -21,10 +21,12 @@ public:
     double BaseEmissionPr(MoveType move, char from, char to) const;
     double CovEmissionPr(MoveType move, uint8_t cov, char from, char to) const;
     double UndoCounterWeights(size_t nEmissions) const;
+    
 
     static std::string Name() { return "S/P1-C1/beta"; }
 private:
     SNR snr_;
+    double ctx_trans[16][4];
 };
     REGISTER_MODEL_IMPL(SP1C1BetaNoCovModel);
     
@@ -188,12 +190,6 @@ namespace {
             { -3.7635265726798, 0.966948054199674, -0.278953499558314, 0.0217760765687873  },
             { -2.10705727831087, 0.31973388808551, -0.135465925089379, 0.0125410623312247  } 
         }};
-    
-        double ctx_trans[16][4];
-    
-    
-    
-    
     
 }
 
