@@ -71,6 +71,16 @@ set_target_properties(pbconsensus PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY ${PacBioConsensus_LibDir}
 )
 
+# If we're debugging downstream tools, compile with PBBAM
+if (DEBUG_BAM_OUTPUT)
+    include_directories(
+        ${PacBioBAM_IncludeDir}}
+    )
+    target_link_libraries(pbconsensus
+        pbbam
+    )
+endif(DEBUG_BAM_OUTPUT)
+
 # support static registration
 if(APPLE)
     set(PRE_LINK -force_load)

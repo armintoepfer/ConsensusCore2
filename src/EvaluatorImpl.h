@@ -26,6 +26,7 @@ public:
 
     std::pair<double, double> NormalParameters() const;
 
+    MappedRead Read() const;
     double ZScore() const;
 
     bool ApplyMutation(const Mutation& mut);

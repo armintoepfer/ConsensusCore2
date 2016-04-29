@@ -8,6 +8,12 @@
 
 #include "ModelFactory.h"
 
+#ifdef DEBUG_BAM_OUTPUT
+#include <cram/md5.h>
+#include <pbbam/BamWriter.h>
+#include <pacbio/consensus/align/LinearAlignment.h>
+#endif
+
 namespace PacBio {
 namespace Consensus {
 
@@ -311,6 +317,125 @@ std::unique_ptr<AbstractTemplate> MultiMolecularIntegrator::GetTemplate(const Ma
 
     throw std::invalid_argument("read is unmapped!");
 }
+
+#ifdef DEBUG_BAM_OUTPUT
+std::string SequenceChecksum(const std::string& seq)
+{
+    MD5_CTX md5;
+    unsigned char digest[16];
+    char hexdigest[33];
+
+    MD5_Init(&md5);
+    MD5_Update(&md5, reinterpret_cast<void*>(const_cast<char*>(seq.c_str())), seq.size());
+    MD5_Final(digest, &md5);
+
+    for (int i = 0; i < 16; ++i)
+        sprintf(&hexdigest[2*i], "%02x", digest[i]);
+
+   return std::string{hexdigest, 32};
+}
+
+std::string TranscriptToCigar(const std::string& transcript,
+                              const std::string& tpl,
+                              const std::string& query)
+{
+    std::string cigar;
+    char prevMove = '!';
+    size_t count  = 0;
+    size_t tPos = 0;
+    size_t qPos = 0;
+    for (char move : transcript) {
+        // Convert M-moves into PacBio compatable =/X moves
+        if (move == 'M') move = '=';
+        //    move = (tpl[tPos] == query[qPos]) ? '=' : 'X';
+        if (move == 'R') move = 'X';
+        // If our previous move was different, record and start a new counter
+        if (prevMove != '!' && move != prevMove) {
+            cigar += std::to_string(count) + prevMove;
+            count = 0;
+        }
+        if (move != 'I') tPos++;
+        if (move != 'D') qPos++;
+        prevMove = move;
+        ++count;
+    }
+    cigar += std::to_string(count) + prevMove;
+    return cigar;
+}
+
+std::string AlignmentCigar(const std::string& tpl, const std::string& query)
+{
+    PairwiseAlignment* p = AlignLinear(tpl, query);
+    return TranscriptToCigar(p->Transcript(), tpl, query);
+}
+
+size_t TemplateLength(const MappedRead& read)
+{
+    return read.TemplateEnd - read.TemplateStart;
+}
+
+int32_t CalculateFlag(const MappedRead& read)
+{
+    uint32_t flag = 0;
+    if (read.Strand == StrandEnum::REVERSE)
+        flag |= static_cast<uint32_t>(16);
+    return flag;
+}
+
+std::vector<float> SNR(const MappedRead& read)
+{
+    const std::vector<float> retval(4, 0.0f);
+    return retval;
+}
+
+std::string MultiMolecularIntegrator::ReadToCigar(const MappedRead& read) const
+{
+    const size_t tlen = read.TemplateEnd - read.TemplateStart;
+    if (read.Strand == StrandEnum::REVERSE) {
+        const size_t tplStart = fwdTpl_.size() - read.TemplateEnd;
+        return AlignmentCigar(std::string(revTpl_)
+                .substr(read.TemplateStart, tlen), read.Seq);
+    } else {
+        return AlignmentCigar(std::string(fwdTpl_)
+                .substr(read.TemplateStart, tlen), read.Seq);
+    }
+}
+void MultiMolecularIntegrator::WriteBamFile(const std::string& filepath) const
+{
+    using namespace PacBio::BAM;
+    const std::string tplName = "fwdtpl";
+
+    BamHeader header;
+    // Add SQ entry with the template information
+    SequenceInfo si(tplName, std::to_string(fwdTpl_.size()));
+    si.Checksum(SequenceChecksum(fwdTpl_));
+    header.AddSequence(si);
+    // Add CO entry with the raw sequence
+    header.AddComment(tplName + "\t" + std::string(fwdTpl_));
+    BamWriter writer(filepath, header);
+
+    for (auto& eval : evals_) {
+        // For every valid evaluator with a valid mapped read, write a BamRecord
+        if (eval) {
+            const auto& read = eval.Read();
+            if (read) {
+                BamRecordImpl record;
+                record.Name(read->Name);                         // QNAME
+                record.Flag(CalculateFlag(*read));               // FLAG
+                record.ReferenceId(header.SequenceId(tplName));  // RNAME
+                record.Position(read->TemplateStart);            // POS
+                record.CigarData(ReadToCigar(*read));            // CIGAR
+                record.InsertSize(TemplateLength(*read));        // TLEN
+                record.SetSequenceAndQualities(read->Seq);       // SEQ
+                record.AddTag("mo", Tag{read->Model});           // TAG "mo" for sequencing model
+                record.AddTag("sn", Tag{SNR(*read)});            // TAG "sn" for SNR
+                writer.Write(record);
+            }
+        }
+    }
+    return;
+}
+#endif
 
 }  // namespace Consensus
 }  // namespace PacBio

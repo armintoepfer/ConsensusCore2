@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 #include <pacbio/consensus/Read.h>
 #include <pacbio/consensus/Template.h>
 
@@ -47,6 +49,7 @@ public:
 
     std::pair<double, double> NormalParameters() const;
 
+    boost::optional<MappedRead> Read() const;
     double ZScore() const;
 
     bool ApplyMutation(const Mutation& mut);

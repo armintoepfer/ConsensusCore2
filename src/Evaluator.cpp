@@ -93,6 +93,12 @@ std::pair<double, double> Evaluator::NormalParameters() const
     return std::make_pair(NEG_INF, NEG_INF);
 }
 
+boost::optional<MappedRead> Evaluator::Read() const
+{
+    if (impl_) return boost::make_optional(impl_->Read());
+    return boost::none;
+}
+
 double Evaluator::ZScore() const
 {
     if (impl_) return impl_->ZScore();

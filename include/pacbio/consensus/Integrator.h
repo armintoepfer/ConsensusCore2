@@ -114,6 +114,11 @@ public:
     char operator[](size_t i) const;
     operator std::string() const;
 
+#ifdef DEBUG_BAM_OUTPUT
+    std::string ReadToCigar(const MappedRead& read) const;
+    void WriteBamFile(const std::string& filepath) const;
+#endif
+
     void ApplyMutation(const Mutation& mut);
     void ApplyMutations(std::vector<Mutation>* muts);
 

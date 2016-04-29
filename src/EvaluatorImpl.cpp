@@ -163,6 +163,11 @@ std::pair<double, double> EvaluatorImpl::NormalParameters() const
     return recursor_.tpl_->NormalParameters();
 }
 
+MappedRead EvaluatorImpl::Read() const
+{
+    return recursor_.read_;
+}
+
 double EvaluatorImpl::ZScore() const
 {
     double mean, var;
