@@ -417,8 +417,7 @@ void MultiMolecularIntegrator::WriteBamFile(const std::string& filepath) const
     for (auto& eval : evals_) {
         // For every valid evaluator with a valid mapped read, write a BamRecord
         if (eval) {
-            const auto& read = eval.Read();
-            if (read) {
+            if (const auto& read = eval.Read()) {
                 BamRecordImpl record;
                 record.Name(read->Name);                         // QNAME
                 record.Flag(CalculateFlag(*read));               // FLAG
