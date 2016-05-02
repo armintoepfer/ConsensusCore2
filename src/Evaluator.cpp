@@ -34,7 +34,9 @@ Evaluator::Evaluator(std::unique_ptr<AbstractTemplate>&& tpl, const MappedRead& 
         const double zScore = impl_->ZScore();
 
         // the zscore filter is disabled under the following conditions
-        if (mr.Model.find("S/P1-C1") != std::string::npos) goto end;
+        if ((mr.Model.find("S/P1-C1") != std::string::npos) ||
+            (mr.Model.find("S/P2-C2/prospective-compatible") != std::string::npos))
+            goto end;
         if (minZScore <= -100.0) goto end;
         if (std::isnan(minZScore)) goto end;
 
@@ -64,13 +66,13 @@ Evaluator& Evaluator::operator=(Evaluator&& eval)
 Evaluator::~Evaluator() {}
 size_t Evaluator::Length() const
 {
-    if (impl_) return impl_->recursor_.tpl_->Length();
+    if (impl_) return impl_->recursor_->tpl_->Length();
     return 0;
 }
 
 StrandEnum Evaluator::Strand() const
 {
-    if (impl_) return impl_->recursor_.read_.Strand;
+    if (impl_) return impl_->recursor_->read_.Strand;
     return StrandEnum::UNMAPPED;
 }
 
@@ -131,7 +133,7 @@ void Evaluator::Release()
 void Evaluator::CheckInvariants()
 {
     if (!impl_) return;
-    if (impl_->recursor_.tpl_->Length() < 2) state_ = EvaluatorState::NULL_TEMPLATE;
+    if (impl_->recursor_->tpl_->Length() < 2) state_ = EvaluatorState::NULL_TEMPLATE;
     if (state_ != EvaluatorState::VALID) impl_.reset(nullptr);
 }
 
