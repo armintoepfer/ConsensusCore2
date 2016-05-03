@@ -387,8 +387,7 @@ int32_t CalculateFlag(const MappedRead& read)
 
 std::vector<float> SNR(const MappedRead& read)
 {
-    const std::vector<float> retval(4, 0.0f);
-    return retval;
+    return read.SignalToNoise.ToVector();
 }
 
 std::string MultiMolecularIntegrator::ReadToCigar(const MappedRead& read) const
@@ -429,7 +428,9 @@ void MultiMolecularIntegrator::WriteBamFile(const std::string& filepath) const
                 record.CigarData(ReadToCigar(*read));            // CIGAR
                 record.InsertSize(TemplateLength(*read));        // TLEN
                 record.SetSequenceAndQualities(read->Seq);       // SEQ
+                record.AddTag("ip", Tag{read->IPD});             // TAG "ip" for IPD
                 record.AddTag("mo", Tag{read->Model});           // TAG "mo" for sequencing model
+                record.AddTag("pw", Tag{read->PulseWidth});      // TAG "pw" for PulseWidth
                 record.AddTag("sn", Tag{SNR(*read)});            // TAG "sn" for SNR
                 writer.Write(record);
             }

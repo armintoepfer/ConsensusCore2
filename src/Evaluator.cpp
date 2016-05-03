@@ -97,7 +97,7 @@ std::pair<double, double> Evaluator::NormalParameters() const
 
 boost::optional<MappedRead> Evaluator::Read() const
 {
-    if (impl_) return boost::make_optional(impl_->Read());
+    if (impl_) return impl_->Read();
     return boost::none;
 }
 

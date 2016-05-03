@@ -164,7 +164,7 @@ std::pair<double, double> EvaluatorImpl::NormalParameters() const
 
 MappedRead EvaluatorImpl::Read() const
 {
-    return recursor_.read_;
+    return recursor_->read_;
 }
 
 double EvaluatorImpl::ZScore() const

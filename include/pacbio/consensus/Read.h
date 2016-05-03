@@ -19,6 +19,13 @@ struct SNR
     SNR(double a, double c, double g, double t);
     SNR(const std::vector<double>& snrs);
 
+    inline std::vector<float> ToVector() const
+    {
+        const std::vector<float> retval = {static_cast<float>(A), static_cast<float>(C), 
+                                           static_cast<float>(G), static_cast<float>(T)};
+        return retval;
+    }
+
     inline double operator[](const size_t i) const
     {
         if (i == 0) return A;
