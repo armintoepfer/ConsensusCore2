@@ -31,6 +31,7 @@ public:
 
 private:
     SNR snr_;
+    double ctxTrans_[4][2][4];
 };
 
 REGISTER_MODEL_IMPL(P6C4NoCovModel);
@@ -84,7 +85,27 @@ double P6C4NoCovParams[4][2][3][4] = {
       {4.21031404956015, -0.347546363361823, 0.0293839179303896, -0.000893802212450644},
       {2.33143889851302, -0.586068444099136, 0.040044954697795, -0.000957298861394191}}}};
 
-P6C4NoCovModel::P6C4NoCovModel(const SNR& snr) : snr_(snr) {}
+P6C4NoCovModel::P6C4NoCovModel(const SNR& snr) : snr_(snr)
+{
+    for (uint8_t hp = 0; hp < 2; ++hp) {
+        for (uint8_t curr = 0; curr < 4; ++curr) {
+            const auto params = P6C4NoCovParams[curr][hp];
+            const double snr = snr_[curr], snr2 = snr * snr, snr3 = snr2 * snr;
+            double sum = 1.0;
+            ctxTrans_[curr][hp][0] = 1.0;
+            for (size_t j = 0; j < 3; ++j) {
+                double xb =
+                    params[j][0] + snr * params[j][1] + snr2 * params[j][2] + snr3 * params[j][3];
+                xb = std::exp(xb);
+                ctxTrans_[curr][hp][j + 1] = xb;
+                sum += xb;
+            }
+            for (size_t j = 0; j < 4; ++j)
+                ctxTrans_[curr][hp][j] /= sum;
+        }
+    }
+}
+
 std::vector<TemplatePosition> P6C4NoCovModel::Populate(const std::string& tpl) const
 {
     std::vector<TemplatePosition> result;
@@ -97,34 +118,16 @@ std::vector<TemplatePosition> P6C4NoCovModel::Populate(const std::string& tpl) c
     for (size_t i = 1; i < tpl.size(); ++i) {
         const uint8_t curr = detail::TranslationTable[static_cast<uint8_t>(tpl[i])];
         if (curr > 3) throw std::invalid_argument("invalid character in sequence!");
-        const bool hp = tpl[i - 1] == tpl[i];  // NA -> 0, AA -> 1
-        const auto params = P6C4NoCovParams[curr][hp];
-        const double snr = snr_[curr], snr2 = snr * snr, snr3 = snr2 * snr;
-        double tprobs[3];
-        double sum = 1.0;
-
-        for (size_t j = 0; j < 3; ++j) {
-            double xb =
-                params[j][0] + snr * params[j][1] + snr2 * params[j][2] + snr3 * params[j][3];
-            xb = std::exp(xb);
-            tprobs[j] = xb;
-            sum += xb;
-        }
-
-        for (size_t j = 0; j < 3; ++j)
-            tprobs[j] /= sum;
-
+        const auto params = ctxTrans_[curr][tpl[i - 1] == tpl[i]];
         result.emplace_back(TemplatePosition{
             tpl[i - 1], prev,
-            tprobs[1],  // match
-            1.0 / sum,  // branch
-            tprobs[2],  // stick
-            tprobs[0]   // deletion
+            params[2],  // match
+            params[0],  // branch
+            params[3],  // stick
+            params[1]   // deletion
         });
-
         prev = curr;
     }
-
     result.emplace_back(TemplatePosition{tpl.back(), prev, 1.0, 0.0, 0.0, 0.0});
 
     return result;
