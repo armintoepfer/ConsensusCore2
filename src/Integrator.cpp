@@ -1,6 +1,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <fstream>
 #include <utility>
 
 #include <pacbio/consensus/Integrator.h>
@@ -11,6 +12,7 @@
 #ifdef DEBUG_BAM_OUTPUT
 #include <cram/md5.h>
 #include <pbbam/BamWriter.h>
+#include <pbbam/BamFile.h>
 #include <pacbio/consensus/align/LinearAlignment.h>
 #endif
 
@@ -385,59 +387,133 @@ int32_t CalculateFlag(const MappedRead& read)
     return flag;
 }
 
-std::vector<float> SNR(const MappedRead& read)
+std::string OrientedSequence(const MappedRead& read)
 {
-    return read.SignalToNoise.ToVector();
+    if (read.Strand == StrandEnum::REVERSE) {
+        return ::PacBio::Consensus::ReverseComplement(read.Seq);
+    } else {
+        return read.Seq;
+    }
+}
+
+std::vector<uint8_t> OrientedIPD(const MappedRead& read)
+{
+    if (read.Strand == StrandEnum::REVERSE) {
+        std::vector<uint8_t> retval = read.IPD;
+        std::reverse(retval.begin(), retval.end());
+        return retval;
+    } else {
+        return read.IPD;
+    }
+}
+
+std::vector<uint8_t> OrientedPulseWidth(const MappedRead& read)
+{
+    if (read.Strand == StrandEnum::REVERSE) {
+        std::vector<uint8_t> retval = read.PulseWidth;
+        std::reverse(retval.begin(), retval.end());
+        return retval;
+    } else {
+        return read.PulseWidth;
+    }
 }
 
 std::string MultiMolecularIntegrator::ReadToCigar(const MappedRead& read) const
 {
     const size_t tlen = read.TemplateEnd - read.TemplateStart;
+    const std::string tpl = std::string(fwdTpl_).substr(read.TemplateStart, tlen);
     if (read.Strand == StrandEnum::REVERSE) {
-        const size_t tplStart = fwdTpl_.size() - read.TemplateEnd;
-        return AlignmentCigar(std::string(revTpl_)
-                .substr(read.TemplateStart, tlen), read.Seq);
+        const std::string rcSeq = ::PacBio::Consensus::ReverseComplement(read.Seq);
+        return AlignmentCigar(tpl, rcSeq);
     } else {
-        return AlignmentCigar(std::string(fwdTpl_)
-                .substr(read.TemplateStart, tlen), read.Seq);
+        return AlignmentCigar(tpl, read.Seq);
     }
 }
-void MultiMolecularIntegrator::WriteBamFile(const std::string& filepath) const
+
+std::vector<PacBio::BAM::BamRecordImpl> MultiMolecularIntegrator::ToBamRecords(const int32_t rid) const
 {
     using namespace PacBio::BAM;
-    const std::string tplName = "fwdtpl";
-
-    BamHeader header;
-    // Add SQ entry with the template information
-    SequenceInfo si(tplName, std::to_string(fwdTpl_.size()));
-    si.Checksum(SequenceChecksum(fwdTpl_));
-    header.AddSequence(si);
-    // Add CO entry with the raw sequence
-    header.AddComment(tplName + "\t" + std::string(fwdTpl_));
-    BamWriter writer(filepath, header);
-
+    std::vector<BamRecordImpl> records;
     for (auto& eval : evals_) {
-        // For every valid evaluator with a valid mapped read, write a BamRecord
+        // Create a BamRecord for every (A) valid eval with (B) a valid mapped read
         if (eval) {
             if (const auto& read = eval.Read()) {
-                BamRecordImpl record;
-                record.Name(read->Name);                         // QNAME
-                record.Flag(CalculateFlag(*read));               // FLAG
-                record.ReferenceId(header.SequenceId(tplName));  // RNAME
-                record.Position(read->TemplateStart);            // POS
-                record.CigarData(ReadToCigar(*read));            // CIGAR
-                record.InsertSize(TemplateLength(*read));        // TLEN
-                record.SetSequenceAndQualities(read->Seq);       // SEQ
-                record.AddTag("ip", Tag{read->IPD});             // TAG "ip" for IPD
-                record.AddTag("mo", Tag{read->Model});           // TAG "mo" for sequencing model
-                record.AddTag("pw", Tag{read->PulseWidth});      // TAG "pw" for PulseWidth
-                record.AddTag("sn", Tag{SNR(*read)});            // TAG "sn" for SNR
-                writer.Write(record);
+                records.emplace_back();
+                records.back().Name(read->Name);                                   // QNAME
+                records.back().Flag(CalculateFlag(*read));                         // FLAG
+                records.back().ReferenceId(rid);                                   // RNAME
+                records.back().Position(read->TemplateStart);                      // POS
+                records.back().CigarData(ReadToCigar(*read));                      // CIGAR
+                records.back().InsertSize(TemplateLength(*read));                  // TLEN
+                records.back().SetSequenceAndQualities(OrientedSequence(*read));   // SEQ
+                records.back().AddTag("ip", Tag{OrientedIPD(*read)});              // TAG "ip" for IPD
+                records.back().AddTag("mo", Tag{read->Model});                     // TAG "mo" for sequencing model
+                records.back().AddTag("pw", Tag{OrientedPulseWidth(*read)});       // TAG "pw" for PulseWidth
+                records.back().AddTag("sn", Tag{read->SignalToNoise.ToVector()});  // TAG "sn" for SNR
             }
         }
     }
-    return;
+
+    return records;
 }
+
+void MultiMolecularIntegrator::WriteBamFile(const std::string& filepath,
+                                            const std::string& name,
+                                            const bool sorted,
+                                            const bool indexed) const
+{
+    using namespace PacBio::BAM;
+
+    BamHeader header;
+    // Add SQ entry with the template information
+    SequenceInfo si(name, std::to_string(fwdTpl_.size()));
+    si.Checksum(SequenceChecksum(fwdTpl_));
+    header.AddSequence(si);
+    // Add CO entry with the raw sequence
+    header.AddComment(name + "\t" + std::string(fwdTpl_));
+
+    {   // Blocked to ensure flushing and completion of file I/O
+        BamWriter writer(filepath, header);
+        const int32_t sid = header.SequenceId(name);
+        std::vector<BamRecordImpl> records = ToBamRecords(sid);
+    
+        if (sorted)
+            std::stable_sort(records.begin(), records.end(),
+                [](const BamRecordImpl& lhs, const BamRecordImpl& rhs) { 
+                    return lhs.Position() < rhs.Position(); 
+                });
+
+        for (const auto& record : records)
+            writer.Write(record);
+    }
+
+    if (indexed) {
+        BamFile f(filepath);
+        f.CreateStandardIndex();
+    }
+}
+
+void MultiMolecularIntegrator::WriteReferenceFasta(const std::string& filepath, 
+                                                   const std::string& name) const
+{
+    const size_t COLUMN_SIZE = 60;
+    std::string tpl(fwdTpl_);
+    std::ofstream fastaFile;
+    fastaFile.open(filepath);
+    fastaFile << ">" << name << std::endl;
+    for (size_t i = 0; i < tpl.size();) {
+        fastaFile << tpl.substr(i, COLUMN_SIZE) << std::endl;
+        i += COLUMN_SIZE;
+    }
+    fastaFile.close();
+}
+
+void MultiMolecularIntegrator::WriteAlignments(const std::string& filePrefix) const
+{
+    WriteReferenceFasta(filePrefix + ".fasta");
+    WriteBamFile(filePrefix + ".bam");
+}
+
 #endif
 
 }  // namespace Consensus

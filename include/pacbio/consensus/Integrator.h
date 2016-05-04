@@ -11,6 +11,10 @@
 #include <pacbio/consensus/Exceptions.h>
 #include <pacbio/consensus/Mutation.h>
 
+#ifdef DEBUG_BAM_OUTPUT
+#include <pbbam/BamRecord.h>
+#endif
+
 namespace PacBio {
 namespace Consensus {
 
@@ -119,7 +123,14 @@ public:
 
 #ifdef DEBUG_BAM_OUTPUT
     std::string ReadToCigar(const MappedRead& read) const;
-    void WriteBamFile(const std::string& filepath) const;
+    std::vector<PacBio::BAM::BamRecordImpl> ToBamRecords(const int32_t rid) const;
+    void WriteBamFile(const std::string& filepath, 
+                      const std::string& name = "fwdtpl",
+                      const bool sorted = true,
+                      const bool indexed = true) const;
+    void WriteReferenceFasta(const std::string& filepath, 
+                             const std::string& name = "fwdtpl") const;
+    void WriteAlignments(const std::string& filePrefix) const;
 #endif
 
     void ApplyMutation(const Mutation& mut);
