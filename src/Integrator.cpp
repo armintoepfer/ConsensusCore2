@@ -379,7 +379,7 @@ size_t TemplateLength(const MappedRead& read)
     return read.TemplateEnd - read.TemplateStart;
 }
 
-int32_t CalculateFlag(const MappedRead& read)
+int32_t ReadToFlag(const MappedRead& read)
 {
     uint32_t flag = 0;
     if (read.Strand == StrandEnum::REVERSE)
@@ -387,34 +387,12 @@ int32_t CalculateFlag(const MappedRead& read)
     return flag;
 }
 
-std::string OrientedSequence(const MappedRead& read)
+std::string ReadToSequence(const MappedRead& read)
 {
     if (read.Strand == StrandEnum::REVERSE) {
         return ::PacBio::Consensus::ReverseComplement(read.Seq);
     } else {
         return read.Seq;
-    }
-}
-
-std::vector<uint8_t> OrientedIPD(const MappedRead& read)
-{
-    if (read.Strand == StrandEnum::REVERSE) {
-        std::vector<uint8_t> retval = read.IPD;
-        std::reverse(retval.begin(), retval.end());
-        return retval;
-    } else {
-        return read.IPD;
-    }
-}
-
-std::vector<uint8_t> OrientedPulseWidth(const MappedRead& read)
-{
-    if (read.Strand == StrandEnum::REVERSE) {
-        std::vector<uint8_t> retval = read.PulseWidth;
-        std::reverse(retval.begin(), retval.end());
-        return retval;
-    } else {
-        return read.PulseWidth;
     }
 }
 
@@ -440,15 +418,15 @@ std::vector<PacBio::BAM::BamRecordImpl> MultiMolecularIntegrator::ToBamRecords(c
             if (const auto& read = eval.Read()) {
                 records.emplace_back();
                 records.back().Name(read->Name);                                   // QNAME
-                records.back().Flag(CalculateFlag(*read));                         // FLAG
+                records.back().Flag(ReadToFlag(*read));                            // FLAG
                 records.back().ReferenceId(rid);                                   // RNAME
                 records.back().Position(read->TemplateStart);                      // POS
                 records.back().CigarData(ReadToCigar(*read));                      // CIGAR
                 records.back().InsertSize(TemplateLength(*read));                  // TLEN
-                records.back().SetSequenceAndQualities(OrientedSequence(*read));   // SEQ
-                records.back().AddTag("ip", Tag{OrientedIPD(*read)});              // TAG "ip" for IPD
+                records.back().SetSequenceAndQualities(ReadToSequence(*read));     // SEQ
+                records.back().AddTag("ip", Tag{read->IPD});                       // TAG "ip" for IPD
                 records.back().AddTag("mo", Tag{read->Model});                     // TAG "mo" for sequencing model
-                records.back().AddTag("pw", Tag{OrientedPulseWidth(*read)});       // TAG "pw" for PulseWidth
+                records.back().AddTag("pw", Tag{read->PulseWidth});                // TAG "pw" for PulseWidth
                 records.back().AddTag("sn", Tag{read->SignalToNoise.ToVector()});  // TAG "sn" for SNR
             }
         }
