@@ -79,6 +79,9 @@ public:
     // transcript as defined by Gusfield pg 215.
     std::string Transcript() const;
 
+    // CIGAR string as defined by the SAM-format specification pg 5.
+    std::string Cigar() const;
+
 public:
     float Accuracy() const;
     int Matches() const;

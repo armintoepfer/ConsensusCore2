@@ -340,38 +340,10 @@ std::string SequenceChecksum(const std::string& seq)
    return std::string{hexdigest, 32};
 }
 
-std::string TranscriptToCigar(const std::string& transcript,
-                              const std::string& tpl,
-                              const std::string& query)
-{
-    std::string cigar;
-    char prevMove = '!';
-    size_t count  = 0;
-    size_t tPos = 0;
-    size_t qPos = 0;
-    for (char move : transcript) {
-        // Convert M-moves into PacBio compatable =/X moves
-        if (move == 'M') move = '=';
-        //    move = (tpl[tPos] == query[qPos]) ? '=' : 'X';
-        if (move == 'R') move = 'X';
-        // If our previous move was different, record and start a new counter
-        if (prevMove != '!' && move != prevMove) {
-            cigar += std::to_string(count) + prevMove;
-            count = 0;
-        }
-        if (move != 'I') tPos++;
-        if (move != 'D') qPos++;
-        prevMove = move;
-        ++count;
-    }
-    cigar += std::to_string(count) + prevMove;
-    return cigar;
-}
-
 std::string AlignmentCigar(const std::string& tpl, const std::string& query)
 {
     PairwiseAlignment* p = AlignLinear(tpl, query);
-    return TranscriptToCigar(p->Transcript(), tpl, query);
+    return p->Cigar();
 }
 
 size_t TemplateLength(const MappedRead& read)

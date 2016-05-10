@@ -52,6 +52,32 @@ std::string PairwiseAlignment::Target() const { return target_; }
 std::string PairwiseAlignment::Query() const { return query_; }
 float PairwiseAlignment::Accuracy() const { return ((float)(Matches())) / Length(); }
 std::string PairwiseAlignment::Transcript() const { return transcript_; }
+
+std::string PairwiseAlignment::Cigar() const
+{
+    std::string cigar;
+    char prevMove = '!';
+    size_t count  = 0;
+    size_t tPos = 0;
+    size_t qPos = 0;
+    for (char move : transcript_) {
+        // Convert M/R-moves into PacBio compatable =/X moves
+        if (move == 'M') move = '=';
+        if (move == 'R') move = 'X';
+        // If our previous move was different, record and start a new counter
+        if (prevMove != '!' && move != prevMove) {
+            cigar += std::to_string(count) + prevMove;
+            count = 0;
+        }
+        if (move != 'I') tPos++;
+        if (move != 'D') qPos++;
+        prevMove = move;
+        ++count;
+    }
+    cigar += std::to_string(count) + prevMove;
+    return cigar;
+}
+
 int PairwiseAlignment::Matches() const
 {
     return std::count(transcript_.begin(), transcript_.end(), 'M');
