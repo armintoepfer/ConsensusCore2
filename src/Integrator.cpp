@@ -13,6 +13,7 @@
 #include <cram/md5.h>
 #include <pbbam/BamWriter.h>
 #include <pbbam/BamFile.h>
+#include <pbbam/MD5.h>
 #include <pacbio/consensus/align/LinearAlignment.h>
 #endif
 
@@ -324,22 +325,6 @@ std::unique_ptr<AbstractTemplate> MultiMolecularIntegrator::GetTemplate(const Ma
 }
 
 #ifdef DEBUG_BAM_OUTPUT
-std::string SequenceChecksum(const std::string& seq)
-{
-    MD5_CTX md5;
-    unsigned char digest[16];
-    char hexdigest[33];
-
-    MD5_Init(&md5);
-    MD5_Update(&md5, reinterpret_cast<void*>(const_cast<char*>(seq.c_str())), seq.size());
-    MD5_Final(digest, &md5);
-
-    for (int i = 0; i < 16; ++i)
-        sprintf(&hexdigest[2*i], "%02x", digest[i]);
-
-   return std::string{hexdigest, 32};
-}
-
 std::string AlignmentCigar(const std::string& tpl, const std::string& query)
 {
     PairwiseAlignment* p = AlignLinear(tpl, query);
@@ -417,7 +402,7 @@ void MultiMolecularIntegrator::WriteBamFile(const std::string& filepath,
     BamHeader header;
     // Add SQ entry with the template information
     SequenceInfo si(name, std::to_string(fwdTpl_.size()));
-    si.Checksum(SequenceChecksum(fwdTpl_));
+    si.Checksum(MD5Hash(fwdTpl_));
     header.AddSequence(si);
     // Add CO entry with the raw sequence
     header.AddComment(name + "\t" + std::string(fwdTpl_));
