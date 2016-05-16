@@ -99,7 +99,8 @@ const string longRead =
     "AATTACTATCTCCCGAAAGAATC";
 const IntegratorConfig cfg(std::numeric_limits<double>::quiet_NaN());
 
-Read MkRead(const std::string& seq, const SNR& snr, const std::string& mdl, const std::vector<uint8_t>& pw)
+Read MkRead(const std::string& seq, const SNR& snr, const std::string& mdl,
+            const std::vector<uint8_t>& pw)
 {
     std::vector<uint8_t> ipd(0, seq.length());
     return Read("NA", seq, ipd, pw, snr, mdl);
@@ -107,7 +108,7 @@ Read MkRead(const std::string& seq, const SNR& snr, const std::string& mdl, cons
 
 TEST(IntegratorTest, TestLongTemplate)
 {
-    //TODO: Write a test for a longer molecule
+    // TODO: Write a test for a longer molecule
     auto mdl = P6C4;
     std::vector<uint8_t> pw(longTpl.length(), 1);
     MonoMolecularIntegrator ai(longTpl, cfg, snr, mdl);
@@ -126,8 +127,8 @@ TEST(IntegratorTest, TestLongTemplateTiming)
 {
     const size_t nsamp = 2000;
     const std::vector<uint8_t> pws(longTpl.length(), 2);
-    std::vector<string> mdls {P6C4, SP1C1};
-    for( auto mdl : mdls) {
+    std::vector<string> mdls{P6C4, SP1C1};
+    for (auto mdl : mdls) {
         MonoMolecularIntegrator ai(longTpl, cfg, snr, mdl);
         const auto stime = std::chrono::high_resolution_clock::now();
         for (size_t i = 0; i < nsamp; ++i)
@@ -198,8 +199,8 @@ void MutationEquivalence(const size_t nsamp, const size_t nmut, const F& makeInt
             std::vector<uint8_t> pws = RandomPW(read.length(), &gen);
             try {
                 auto ai1 = makeIntegrator(tpl);
-                const auto arr1 = addRead(
-                    ai1, MappedRead(MkRead(read, snr, mdl, pws), strand, 0, tpl.length(), true, true));
+                const auto arr1 = addRead(ai1, MappedRead(MkRead(read, snr, mdl, pws), strand, 0,
+                                                          tpl.length(), true, true));
                 EXPECT_EQ(AddReadResult::SUCCESS, arr1);
                 if (arr1 != AddReadResult::SUCCESS) {
                     std::cerr << std::endl << "!! alpha/beta mismatch:" << std::endl;
@@ -207,8 +208,8 @@ void MutationEquivalence(const size_t nsamp, const size_t nmut, const F& makeInt
                     std::cerr << "  " << read.length() << ", " << read << std::endl;
                 }
                 auto ai2 = makeIntegrator(app);
-                const auto arr2 = addRead(
-                    ai2, MappedRead(MkRead(read, snr, mdl, pws), strand, 0, app.length(), true, true));
+                const auto arr2 = addRead(ai2, MappedRead(MkRead(read, snr, mdl, pws), strand, 0,
+                                                          app.length(), true, true));
                 EXPECT_EQ(AddReadResult::SUCCESS, arr2);
                 if (arr2 != AddReadResult::SUCCESS) {
                     std::cerr << std::endl << "!! alpha/beta mismatch:" << std::endl;
@@ -257,9 +258,11 @@ void MutationEquivalence(const size_t nsamp, const size_t nmut, const F& makeInt
     // EXPECT_LT(nerror, ntests / 1000);
 }
 
-    
-void MonoEquivalence(std::string mdl) {
-    auto makeMono = [mdl](const string& tpl) { return MonoMolecularIntegrator(tpl, cfg, snr, mdl); };
+void MonoEquivalence(std::string mdl)
+{
+    auto makeMono = [mdl](const string& tpl) {
+        return MonoMolecularIntegrator(tpl, cfg, snr, mdl);
+    };
     auto monoRead = [](MonoMolecularIntegrator& ai, const MappedRead& mr) {
         return ai.AddRead(mr);
     };
@@ -267,18 +270,11 @@ void MonoEquivalence(std::string mdl) {
     MutationEquivalence(333, 1, makeMono, monoRead, mdl);
     MutationEquivalence(334, 0, makeMono, monoRead, mdl);
 }
-    
-TEST(IntegratorTest, TestMonoMutationEquivalenceP6C4)
-{
-    MonoEquivalence(P6C4);
-}
-    
-TEST(IntegratorTest, TestMonoMutationEquivalenceSP1C1)
-{
-    MonoEquivalence(SP1C1);
-}
 
-void MultiEquivalence(std::string mdl) {
+TEST(IntegratorTest, TestMonoMutationEquivalenceP6C4) { MonoEquivalence(P6C4); }
+TEST(IntegratorTest, TestMonoMutationEquivalenceSP1C1) { MonoEquivalence(SP1C1); }
+void MultiEquivalence(std::string mdl)
+{
     auto makeMulti = [](const string& tpl) { return MultiMolecularIntegrator(tpl, cfg); };
     auto multiRead = [](MultiMolecularIntegrator& ai, const MappedRead& mr) {
         return ai.AddRead(mr);
@@ -287,18 +283,9 @@ void MultiEquivalence(std::string mdl) {
     MutationEquivalence(333, 1, makeMulti, multiRead, mdl);
     MutationEquivalence(334, 0, makeMulti, multiRead, mdl);
 }
-    
-TEST(IntegratorTest, TestMultiMutationEquivalenceP6C4)
-{
-    MultiEquivalence(P6C4);
-}
 
-TEST(IntegratorTest, TestMultiMutationEquivalenceSP)
-{
-    MultiEquivalence(SP1C1);
-}
-  
-
+TEST(IntegratorTest, TestMultiMutationEquivalenceP6C4) { MultiEquivalence(P6C4); }
+TEST(IntegratorTest, TestMultiMutationEquivalenceSP1C1) { MultiEquivalence(SP1C1); }
 // TODO(lhepler): test multi/mono equivalence
 // TODO(lhepler): test multiple mutation testing mono and multi
 
@@ -308,7 +295,7 @@ TEST(IntegratorTest, TestP6C4NoCovAgainstCSharpModel)
     const std::vector<uint8_t> pw(tpl.length(), 1);
     auto mdl = P6C4;
     MultiMolecularIntegrator ai(tpl, cfg);
-    
+
     EXPECT_EQ(AddReadResult::SUCCESS,
               ai.AddRead(MappedRead(MkRead("ACGTACGT", snr, mdl, pw), StrandEnum::FORWARD, 0,
                                     tpl.length(), true, true)));

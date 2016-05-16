@@ -9,6 +9,7 @@ namespace PacBio {
 namespace Consensus {
 namespace {  // anonymous
 
+constexpr double ALPHA_BETA_MISMATCH_TOLERANCE = 0.001;
 constexpr size_t EXTEND_BUFFER_COLUMNS = 8;
 
 #if 0
@@ -56,14 +57,12 @@ EvaluatorImpl::EvaluatorImpl(std::unique_ptr<AbstractTemplate>&& tpl, const Mapp
     , beta_(mr.Length() + 1, recursor_->tpl_->Length() + 1, ScaledMatrix::REVERSE)
     , extendBuffer_(mr.Length() + 1, EXTEND_BUFFER_COLUMNS, ScaledMatrix::FORWARD)
 {
-    recursor_->FillAlphaBeta(alpha_, beta_);
+    // at initialization, require a tolerance 10x more strict that after,
+    //   to weed out reads that are borderline and will cause ABMs when polishing
+    recursor_->FillAlphaBeta(alpha_, beta_, ALPHA_BETA_MISMATCH_TOLERANCE / 10.0);
 }
 
-std::string EvaluatorImpl::ReadName() const
-{
-    return recursor_->read_.Name;
-}
-
+std::string EvaluatorImpl::ReadName() const { return recursor_->read_.Name; }
 double EvaluatorImpl::LL(const Mutation& mut_)
 {
     // apply the virtual mutation
@@ -181,7 +180,7 @@ inline void EvaluatorImpl::Recalculate()
     alpha_.Reset(I, J);
     beta_.Reset(I, J);
     extendBuffer_.Reset(I, EXTEND_BUFFER_COLUMNS);
-    recursor_->FillAlphaBeta(alpha_, beta_);
+    recursor_->FillAlphaBeta(alpha_, beta_, ALPHA_BETA_MISMATCH_TOLERANCE);
 }
 
 bool EvaluatorImpl::ApplyMutation(const Mutation& mut)

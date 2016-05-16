@@ -133,7 +133,7 @@ public:
     AbstractRecursor(std::unique_ptr<AbstractTemplate>&& tpl, const MappedRead& mr,
                      double scoreDiff);
     virtual ~AbstractRecursor() {}
-    virtual size_t FillAlphaBeta(M& alpha, M& beta) const throw(AlphaBetaMismatch) = 0;
+    virtual size_t FillAlphaBeta(M& alpha, M& beta, double tol) const throw(AlphaBetaMismatch) = 0;
     virtual void FillAlpha(const M& guide, M& alpha) const = 0;
     virtual void FillBeta(const M& guide, M& beta) const = 0;
     virtual double LinkAlphaBeta(const M& alpha, size_t alphaColumn, const M& beta,
@@ -159,7 +159,6 @@ bool AbstractTemplate::InRange(const size_t start, const size_t end) const
 }
 
 size_t Template::Length() const { return tpl_.size() + mutOff_; }
-
 const TemplatePosition& Template::operator[](size_t i) const
 {
     // if no mutation, or everything up to the base before mutStart_, just return
@@ -176,7 +175,6 @@ const TemplatePosition& Template::operator[](size_t i) const
 }
 
 bool Template::IsMutated() const { return mutated_; }
-
 size_t VirtualTemplate::Length() const
 {
     if (IsMutated()) return end_ - start_ + master_.mutOff_;

@@ -181,9 +181,9 @@ AddReadResult MonoMolecularIntegrator::AddRead(const MappedRead& read)
 
     else if (read.Strand == StrandEnum::REVERSE)
         return AbstractIntegrator::AddRead(
-            std::unique_ptr<AbstractTemplate>(
-                new VirtualTemplate(revTpl_, TemplateLength() - read.TemplateEnd,
-                                    TemplateLength() - read.TemplateStart, read.PinEnd, read.PinStart)),
+            std::unique_ptr<AbstractTemplate>(new VirtualTemplate(
+                revTpl_, TemplateLength() - read.TemplateEnd, TemplateLength() - read.TemplateStart,
+                read.PinEnd, read.PinStart)),
             read);
 
     throw std::invalid_argument("read is unmapped!");
