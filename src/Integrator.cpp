@@ -372,7 +372,7 @@ std::string AlignmentCigar(const std::string& tpl, const std::string& query)
     return p->Cigar();
 }
 
-size_t TemplateLength(const MappedRead& read)
+size_t TemplateSpan(const MappedRead& read)
 {
     return read.TemplateEnd - read.TemplateStart;
 }
@@ -420,7 +420,7 @@ std::vector<PacBio::BAM::BamRecordImpl> MultiMolecularIntegrator::ToBamRecords(c
                 records.back().ReferenceId(rid);                                   // RNAME
                 records.back().Position(read->TemplateStart);                      // POS
                 records.back().CigarData(ReadToCigar(*read));                      // CIGAR
-                records.back().InsertSize(TemplateLength(*read));                  // TLEN
+                records.back().InsertSize(TemplateSpan(*read));                    // TLEN
                 records.back().SetSequenceAndQualities(ReadToSequence(*read));     // SEQ
                 records.back().AddTag("ip", Tag{read->IPD});                       // TAG "ip" for IPD
                 records.back().AddTag("mo", Tag{read->Model});                     // TAG "mo" for sequencing model
