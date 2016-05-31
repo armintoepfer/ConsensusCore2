@@ -63,7 +63,7 @@ ENDIF(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PacBioConsensus_CXX_FLAGS}")
 
 # libpbconsensus.a
-add_library(pbconsensus STATIC
+add_library(pbconsensus SHARED
     ${PacBioConsensus_CPP}
     ${PacBioConsensus_HPP}
 )
