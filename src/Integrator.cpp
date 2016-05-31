@@ -217,6 +217,8 @@ MonoMolecularIntegrator::operator std::string() const
     return result;
 }
 
+    
+    
 double MonoMolecularIntegrator::LL(const Mutation& fwdMut)
 {
     const Mutation revMut(ReverseComplement(fwdMut));
@@ -228,6 +230,19 @@ double MonoMolecularIntegrator::LL(const Mutation& fwdMut)
     return ll;
 }
 
+    
+
+std::vector<double> MonoMolecularIntegrator::LLs(const Mutation& mut) {
+    const Mutation revMut(ReverseComplement(mut));
+    fwdTpl_.Mutate(mut);
+    revTpl_.Mutate(revMut);
+    std::vector<double> lls = AbstractIntegrator::LLs(mut);
+    fwdTpl_.Reset();
+    revTpl_.Reset();
+    return lls;
+}
+    
+    
 void MonoMolecularIntegrator::ApplyMutation(const Mutation& fwdMut)
 {
     const Mutation revMut(ReverseComplement(fwdMut));

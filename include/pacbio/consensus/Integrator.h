@@ -71,7 +71,7 @@ public:
 
     // For debugging purposes
     // (Note that these include results include all evaluators, even the inactive ones)
-    std::vector<double> LLs(const Mutation& mut);
+    virtual std::vector<double> LLs(const Mutation& mut);
     std::vector<double> LLs() const;
     std::vector<std::string> ReadNames() const;
 
@@ -109,6 +109,8 @@ public:
     void ApplyMutations(std::vector<Mutation>* muts);
 
     AddReadResult AddRead(const MappedRead& read);
+    using AbstractIntegrator::LLs; // to access non-mutating version.
+    virtual std::vector<double> LLs(const Mutation& mut);
 
 protected:
     std::string mdl_;
