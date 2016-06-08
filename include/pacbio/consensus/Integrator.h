@@ -74,6 +74,7 @@ public:
     virtual std::vector<double> LLs(const Mutation& mut);
     std::vector<double> LLs() const;
     std::vector<std::string> ReadNames() const;
+    std::vector<std::string> ReadDirections() const;
 
 protected:
     Mutation ReverseComplement(const Mutation& mut) const;

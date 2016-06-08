@@ -111,6 +111,17 @@ std::vector<std::string> AbstractIntegrator::ReadNames() const
     }
     return readNames;
 }
+    
+std::vector<std::string> AbstractIntegrator::ReadDirections() const {
+    std::vector<std::string> dirs(evals_.size());
+    for (auto& eval : evals_) {
+        if (eval.Strand() == StrandEnum::FORWARD)
+            dirs.push_back("F");
+        else if (eval.Strand() == StrandEnum::REVERSE)
+            dirs.push_back("R");
+    }
+    return dirs;
+}
 
 double AbstractIntegrator::AvgZScore() const
 {
